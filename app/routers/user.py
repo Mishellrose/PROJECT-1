@@ -17,4 +17,7 @@ def create_user(user:schemas.UserCreate,status_code=status.HTTP_201_CREATED,db:S
 
     return new_user
 
+
+
+
     
