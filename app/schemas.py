@@ -48,9 +48,14 @@ class PartialProf(BaseModel):
     height: Optional[int] = None
     language: Optional[str] = None
 
-class CreateHS(BaseModel):
+class HSCreate(BaseModel):
     name: str
     description: str
+    image: Optional[str] = None
+
+    class Config():
+        orm_mode= True
+    
     
 
 class HSOut(BaseModel):
