@@ -125,7 +125,29 @@ async def upload_picture(file:UploadFile, profile_id: int, current_user= Depends
 
 #upload multiple images
 @router.post("/upload-multiple/{profile_id}")
-async def upload_multiple_pictures(files: List[UploadFile] = )
+async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, current_user= Depends(oauth2.get_current_user),db:Session= Depends(get_db)):
+
+    # Check if the profile belongs to the current user
+    db_profile = db.query(models.Profile).filter(models.Profile.id == profile_id).first()
+    if not db_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    if db_profile.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to update this profile")
+    
+    file_locations = []
+    for file in files:
+        file_location = f"uploads/{file.filename}"
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        file_locations.append(file_location)
+
+    # Store the list of image paths as a comma-separated string
+    db_profile.images = ",".join(file_locations)
+    db.add(db_profile)
+    db.commit()
+    db.refresh(db_profile)  
+
+    return {"filenames": [file.filename for file in files], "user_id": current_user.id}
 
 
 

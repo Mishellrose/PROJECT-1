@@ -25,6 +25,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    sa.drop_column('profile','images')
+    op.drop_column('profile','images')
     
     pass

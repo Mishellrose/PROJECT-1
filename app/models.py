@@ -35,4 +35,17 @@ class Profile(Base):
     owner= relationship("User")
     
     
+#create hotspot table , name,description,image
+
+class Hotspot(Base):
+    __tablename__="hotspot"
+
+    id=Column(Integer,primary_key=True,nullable=False)
+    name=Column(String,nullable=False)
+    description=Column(String,nullable=False)
+    image=Column(String,nullable=True)
+
+
+
+
 
