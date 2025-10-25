@@ -52,6 +52,7 @@ class HSCreate(BaseModel):
     name: str
     description: str
     image: Optional[str] = None
+    location: Optional[str] = None
 
     class Config():
         orm_mode= True

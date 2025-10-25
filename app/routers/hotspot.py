@@ -15,6 +15,7 @@ async def create_hotspot(
     name: str = Form(...),
     description: str = Form(...),
     image : UploadFile = File(...),
+    location: str = Form(None),
     db: Session = Depends(get_db)
 ):
     
@@ -25,7 +26,8 @@ async def create_hotspot(
     new_hotspot = models.Hotspot(
         name=name,
         description=description,
-        image=file_location
+        image=file_location,
+        location=location
     )
     db.add(new_hotspot)
     db.commit()
@@ -35,7 +37,8 @@ async def create_hotspot(
         "id": new_hotspot.id,
         "name": new_hotspot.name,
         "description": new_hotspot.description,
-        "image": file_location
+        "image": file_location, 
+        "location": new_hotspot.location
     }
 
 #get all hotspots

@@ -44,7 +44,7 @@ class Hotspot(Base):
     name=Column(String,nullable=False)
     description=Column(String,nullable=False)
     image=Column(String,nullable=True)
-
+    location=Column(String,nullable=True)
 
 
 

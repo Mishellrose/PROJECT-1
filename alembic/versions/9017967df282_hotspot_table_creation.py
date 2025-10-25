@@ -6,7 +6,7 @@ Create Date: 2025-10-24 13:49:42.571206
 
 """
 from typing import Sequence, Union
-from fastapi import Column  
+from sqlalchemy import Column  
 from alembic import op
 import sqlalchemy as sa
 
