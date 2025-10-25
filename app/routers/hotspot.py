@@ -39,6 +39,11 @@ async def create_hotspot(
     }
 
 #get all hotspots
+@router.get("/",response_model=list[schemas.HSCreate])
+def get_all_hotspots(db: Session = Depends(get_db)):
+    hotspots = db.query(models.Hotspot).all()
+    return hotspots
+
 
 
 
