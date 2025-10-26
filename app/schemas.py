@@ -63,6 +63,10 @@ class HSOut(BaseModel):
     id: int
     name: str
     description: str
+
+class UserHS(BaseModel):
+    user_id: int
+    hotspot_location: Optional[str]
     
 
     

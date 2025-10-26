@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.create_table("hotspot",
-                    Column("id",sa.Integer,primary_key=True,nullable=False),
+                    Column("id",sa.Integer,primary_key=True,autoincrement=True,nullable=False),
                     Column("name",sa.String,nullable=False),
                     Column("description",sa.String,nullable=True),
                     Column("image",sa.String,nullable=True)

@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('hotspot', sa.Column('location', sa.String, nullable=True))
+    op.add_column('hotspot', sa.Column('location', sa.String, unique=True, nullable=False))
     pass
 
 

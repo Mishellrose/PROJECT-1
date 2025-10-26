@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, Form,HTTPException,status,Depends,UploadFile,File
-from app import schemas,models
+from app import schemas,models,oauth2
 from sqlalchemy.orm import Session
 from app.database import get_db
 
@@ -46,8 +46,28 @@ async def create_hotspot(
 def get_all_hotspots(db: Session = Depends(get_db)):
     hotspots = db.query(models.Hotspot).all()
     return hotspots
+#id and location
 
+@router.post("/inside",status_code=status.HTTP_201_CREATED)
+def temptable_user(user: schemas.UserHS,current_user= Depends(oauth2.get_current_user),db:Session=Depends(get_db)):
 
+    db_user = db.query(models.User).filter(models.User.id == user.user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db_user.id != current_user.id:
+     raise HTTPException(status_code=403, detail="Invalid credentials")
+    if user.hotspot_location:
+        db_hotspot = db.query(models.Hotspot).filter(models.Hotspot.location == user.hotspot_location).first()
+        if not db_hotspot:
+            raise HTTPException(status_code=404, detail="Hotspot not found")
+
+    user_query=models.TempTable(**user.dict())
+    db.add(user_query)
+    db.commit()
+    db.refresh(user_query)
+
+    return{"user_id":user.user_id, "hotspot_location":user.hotspot_location}
+    
 
 
 

@@ -40,12 +40,16 @@ class Profile(Base):
 class Hotspot(Base):
     __tablename__="hotspot"
 
-    id=Column(Integer,primary_key=True,nullable=False)
+    id=Column(Integer,primary_key=True,autoincrement=True,nullable=False)
     name=Column(String,nullable=False)
     description=Column(String,nullable=False)
     image=Column(String,nullable=True)
-    location=Column(String,nullable=True)
+    location=Column(String,unique=True,nullable=False)
 
 
+class TempTable(Base):
+    __tablename__="temptable"
 
+    user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),primary_key=True)
+    hotspot_location=Column(String,ForeignKey("hotspot.location",ondelete='CASCADE'), primary_key=True)
 
