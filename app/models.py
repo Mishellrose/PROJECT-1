@@ -47,9 +47,9 @@ class Hotspot(Base):
     location=Column(String,unique=True,nullable=False)
 
 
-class TempTable(Base):
-    __tablename__="temptable"
+#class TempTable(Base):
+   # __tablename__="temptable"
 
-    user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),primary_key=True)
-    hotspot_location=Column(String,ForeignKey("hotspot.location",ondelete='CASCADE'), primary_key=True)
+    #user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),primary_key=True)
+    #hotspot_location=Column(String,ForeignKey("hotspot.location",ondelete='CASCADE'), primary_key=True)
 
