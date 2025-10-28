@@ -31,10 +31,10 @@ def create_profile(prof: schemas.UserProfile,current_user: int=Depends(oauth2.ge
             created_at=current_user.created_at
         ))
 
-@router.put("/edit/{id}",response_model=schemas.ProfileOut)
-def update(id: int, upd_prof: schemas.UserProfile, current_user:int=Depends(oauth2.get_current_user), db: Session=Depends(get_db)):
+@router.put("/edit/{user_id}",response_model=schemas.ProfileOut)
+def update(user_id: int, upd_prof: schemas.UserProfile, current_user:int=Depends(oauth2.get_current_user), db: Session=Depends(get_db)):
 
-    prof_query=db.query(models.Profile).filter(models.Profile.id==id)
+    prof_query=db.query(models.Profile).filter(models.Profile.id==user_id)
     prof=prof_query.first()
     if not prof:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f'post with id {id} not found')
@@ -98,7 +98,7 @@ def partial_update(
 
 #upload profile picture
 
-@router.post("/upload/{profile_id}")
+@router.post("/upload/{profile_id}",status_code=status.HTTP_201_CREATED,response_model=schemas.ImageOut)
 async def upload_picture(file:UploadFile, profile_id: int, current_user= Depends(oauth2.get_current_user),db:Session= Depends(get_db)):
 
     # Check if the profile belongs to the current user
@@ -119,12 +119,28 @@ async def upload_picture(file:UploadFile, profile_id: int, current_user= Depends
     db.commit()
     db.refresh(db_profile)  
 
-    return {"filename": file.filename, "user_id": current_user.id}
-
+    return schemas.ImageOut(
+        profile=schemas.ProfileOut(
+            profile=schemas.UserProfile(
+                bio=db_profile.bio,
+                gender=db_profile.gender,
+                sexual_preference=db_profile.sexual_preference,
+                height=db_profile.height,
+                language=db_profile.language
+            ),
+            user=schemas.UserOut(
+                id=current_user.id,
+                email=current_user.email,
+                name=current_user.name,
+                created_at=current_user.created_at
+            )
+        ),
+        image_url=file_location
+    )
 
 
 #upload multiple images
-@router.post("/upload-multiple/{profile_id}")
+@router.post("/upload-multiple/{profile_id}",status_code=status.HTTP_201_CREATED,response_model=schemas.ProImageOut)
 async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, current_user= Depends(oauth2.get_current_user),db:Session= Depends(get_db)):
 
     # Check if the profile belongs to the current user
@@ -147,8 +163,21 @@ async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, cur
     db.commit()
     db.refresh(db_profile)  
 
-    return {"filenames": [file.filename for file in files], "user_id": current_user.id}
-
-
-
-
+    return schemas.ImageOut(
+        profile=schemas.ProfileOut(
+            profile=schemas.UserProfile(
+                bio=db_profile.bio,
+                gender=db_profile.gender,
+                sexual_preference=db_profile.sexual_preference,
+                height=db_profile.height,
+                language=db_profile.language
+            ),
+            user=schemas.UserOut(
+                id=current_user.id,
+                email=current_user.email,
+                name=current_user.name,
+                created_at=current_user.created_at
+            )
+        ),
+        image_urls=db_profile.images
+    )

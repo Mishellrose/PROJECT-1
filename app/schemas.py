@@ -42,17 +42,19 @@ class ProfileOut(BaseModel):
         orm_mode=True
 
 class PartialProf(BaseModel):
-    bio: Optional[str] = None
-    gender: Optional[str] = None
-    sexual_preference: Optional[str] = None
-    height: Optional[int] = None
-    language: Optional[str] = None
+    bio: Optional[str] 
+    gender: Optional[str] 
+    sexual_preference: Optional[str] 
+    height: Optional[int] 
+    language: Optional[str] 
+    class Config():
+        orm_mode= True
 
 class HSCreate(BaseModel):
     name: str
     description: str
-    image: Optional[str] = None
-    location: Optional[str] = None
+    image: Optional[str]
+    location: Optional[str]
 
     class Config():
         orm_mode= True
@@ -64,12 +66,30 @@ class HSOut(BaseModel):
     name: str
     description: str
 
+class ImageOut(BaseModel):
+    inside: bool
+    user: UserOut
+    profile: UserProfile
+    profile_picture: Optional[str]
+    images: str
+    
+    class config():
+        orm_mode= True
+
+
+class ProImageOut(BaseModel):
+    profile: ProfileOut
+    image_urls: str
+    class Config():
+        orm_mode= True
+
 class UserHS(BaseModel):
     user_id: int
     hotspot_location: Optional[str]
-    
+    class Config():
+        orm_mode= True
 
-    
+
 
 
     

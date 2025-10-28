@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from fastapi import Depends,HTTPException,status
 from app import schemas,models
 from app.config import settings
@@ -50,7 +51,19 @@ def get_current_user(
     return user
 
                                         
-    
+def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_id_det = db.execute(text(f"SELECT * FROM users WHERE id = {user_id};")).fetchone()
+    return user_id_det
+
+def get_user_profile_by_id(user_id: int, db: Session = Depends(get_db)):
+    profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+    profile_id_det = db.execute(text(f"SELECT * FROM profile  WHERE user_id = {user_id};")).fetchone()
+    return profile_id_det
 
 
 
