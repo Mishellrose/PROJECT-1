@@ -37,7 +37,7 @@ async def create_hotspot(
     db.refresh(new_hotspot)
     #create new temporary table for each created hotspot
 
-    db.execute(text(f"CREATE TABLE {new_hotspot.name}_temporary_table (id SERIAL PRIMARY KEY, location VARCHAR UNIQUE NOT NULL);"))
+    db.execute(text(f"CREATE TABLE {new_hotspot.name}_temporary_table (id SERIAL PRIMARY KEY, user_location VARCHAR UNIQUE NOT NULL REFERENCES hotspot(location), user_id INTEGER UNIQUE NOT NULL REFERENCES users(id));"))
     db.commit()
     
 
@@ -83,6 +83,7 @@ def inside_hotspot(
     current_user: int = Depends(oauth2.get_current_user),
     db: Session = Depends(get_db)
 ):
+    # WHILE ENTERING THE LATS AND LONS DONT PUT COMMA BETWWEN LAT AND LON--- IT SHOULD BE LIKE (63747 32653)---NO COMMA IN BETWEEN!!!
 
     # 1️⃣ Check if user exists and credentials are valid
     db_user = db.query(models.User).filter(models.User.id == user.user_id).first()
@@ -90,6 +91,7 @@ def inside_hotspot(
         raise HTTPException(status_code=404, detail="User not found")
     if db_user.id != current_user.id:
         raise HTTPException(status_code=403, detail="Invalid credentials")
+    
 
     # 2️⃣ Parse user location into Point
     try:
@@ -128,14 +130,13 @@ def inside_hotspot(
             )
 
         # 4️⃣ Check if user is inside polygon
+                    # Insert user location into corresponding temporary table safely
+
         if polygon.contains(user_point):
-            # Insert user location into corresponding temporary table safely
             insert_stmt = text(f"""
-                INSERT INTO {location.name}_temporary_table (location)
-                VALUES (:hotspot_location)
-                ON CONFLICT (location) DO NOTHING;
-            """)
-            db.execute(insert_stmt, {"hotspot_location": user.hotspot_location})
+                INSERT INTO {location.name}_temporary_table (user_location,user_id)
+                VALUES (:user_location, :user_id); """)
+            db.execute(insert_stmt, {"user_location": user.hotspot_location,"user_id": user.user_id} )
             db.commit()
 
             return {
@@ -144,6 +145,8 @@ def inside_hotspot(
                 "hotspot_id": location.id,
                 "hotspot_name": location.name,
                 "inside": True
+                #other users in the same temporay table
+
             }
 
     # 5️⃣ If user is not inside any hotspot
