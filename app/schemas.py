@@ -89,7 +89,21 @@ class UserHS(BaseModel):
     class Config():
         orm_mode= True
 
+class SwipeIn(BaseModel):
+    user_id: int
+    swiped_on_id: int
+    direction: str
+    class Config():
+        orm_mode= True
 
+class SwipeOut(BaseModel):
+    user_id: int
+    user_name: str
+    swiped_on_id: int
+    swiped_on_id_name: str
+    direction: str
+    class Config():
+        orm_mode= True
 
 
     
