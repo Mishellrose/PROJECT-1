@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from sqlalchemy import text
 from shapely.geometry import Point, LineString, Polygon
-
+from app.services import hotspot_service
 
 
 router=APIRouter(prefix="/hotspot",tags=['Hotspot'])
@@ -74,97 +74,69 @@ def get_all_hotspots(db: Session = Depends(get_db)):
  
   #find user is inside or outside hotspot,we get id and location of user
 
-
-
 @router.post("/inside", status_code=status.HTTP_200_OK)
 def inside_hotspot(
-        user: schemas.UserHS,
-        current_user: int = Depends(oauth2.get_current_user),
-        db: Session = Depends(get_db)
-    ):
-        # WHILE ENTERING THE LATS AND LONS DONT PUT COMMA BETWWEN LAT AND LON--- IT SHOULD BE LIKE (63747 32653)---NO COMMA IN BETWEEN!!! 
-        # 1️⃣ Check if user exists and credentials are valid
-        db_user = db.query(models.User).filter(models.User.id == user.user_id).first()
-        if not db_user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if db_user.id != current_user.id:
-            raise HTTPException(status_code=403, detail="Invalid credentials")
-        # 2️⃣ Parse user location into Point
-        try:
-            user_lon, user_lat = map(float, user.hotspot_location.split(","))  # "lon,lat"
-            user_point = Point(user_lon, user_lat)
-        except Exception:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid user hotspot location format. Expected 'lon,lat'."
-            )
-        # 3️⃣ Retrieve all hotspots
-        hotspots = db.query(models.Hotspot).all()
-        for location in hotspots:
-            try:
-                raw_coords = location.location  # e.g., "{(12.9720 77.5945), (12.9730 77.5950), ...}"
-                cleaned = raw_coords.replace("{", "").replace("}", "").replace("(", "").replace(")", "")
-                # cleaned -> "12.9720 77.5945, 12.9730 77.5950, ..."
-                polygon_coords = []
-                for point_str in cleaned.split(","):
-                    point_str = point_str.strip()  # "12.9720 77.5945"
-                    lat_str, lon_str = point_str.split()  # Split by space
-                    lat = float(lat_str)
-                    lon = float(lon_str)
-                    polygon_coords.append((lon, lat))  # Shapely expects (x=lon, y=lat)
-                polygon = Polygon(polygon_coords)
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid hotspot coordinates for {location.name}: {e}"
-                )
-        if polygon.contains(user_point):
-                # CHECKING IF USER IS ALREADY INSIDE THE HOTSPOT
-            check_stmt = text(f"""
-                    SELECT * FROM "{location.name}_temporary_table" WHERE user_id = :user_id;""")
-            result = db.execute(check_stmt, {"user_id": user.user_id}).fetchone()
-            if result:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="User is already marked as inside this hotspot."
-                    )
-            insert_stmt = text(f"""INSERT INTO "{location.name}_temporary_table" (user_location,user_id)VALUES (:user_location, :user_id); """)
-            db.execute(insert_stmt, {"user_location": user.hotspot_location,"user_id": user.user_id} )
-            db.commit()
-                # FETCHING OTHER USERS INSIDE THE SAME HOTSPOT
-            other_users_id = db.scalars(text(f"SELECT user_id from {location.name}_temporary_table WHERE user_id != {current_user.id};")).all()
-            ids = other_users_id
-            print ("OTHER USERS IDS INSIDE HOTSPOT:", ids)
-            users_data = []
+    user: schemas.UserHS,
+    current_user=Depends(oauth2.get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 1️⃣ Validate user
+    db_user = db.query(models.User).filter(models.User.id == user.user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db_user.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Invalid credentials")
 
-            for user_id in other_users_id:
-                other_users = oauth2.get_user_by_id(user_id, db)
-                other_profiles = oauth2.get_user_profile_by_id(user_id, db)
-                # to males show females only and vice versa
-                if other_profiles.sexual_preference == oauth2.get_user_profile_by_id(current_user.id, db).sexual_preference:
-                    continue
-                users_data.append({
-                    "user": {
-                    "id": other_users.id,
-                    "email": other_users.email,
-                    "name": other_users.name,
-                    "created_at": other_users.created_at
-                },
-                    "profile": {
-                    "bio": other_profiles.bio,
-                    "gender": other_profiles.gender,
-                    "sexual_preference": other_profiles.sexual_preference,
-                    "height": other_profiles.height,
-                    "language": other_profiles.language,
-                    "profile_picture": other_profiles.profile_picture,
-                    "images": other_profiles.images
-                }
-                })              
-            return {"other_users": users_data}
+    # 2️⃣ Check which hotspot they’re in
+    result = hotspot_service.get_users_in_same_hotspot(user.user_id, user.hotspot_location, db)
+    if not result:
+        return {"inside": False, "message": "User is not inside any hotspot."}
 
-        else:
-            return {
-                    "user_id": user.user_id,
-                    "hotspot_location": user.hotspot_location,
-                    "inside": False
-        }
+    hotspot = result["hotspot"]
+    other_ids = result["other_user_ids"]
+
+    # 3️⃣ Add user to General_hotspot and hotspot's temporary table (if not already there)
+    user_dets = oauth2.get_user_by_id(user.user_id, db)
+    db.execute(
+        text('INSERT INTO "General_hotspot" (user_id, user_name, hotspot_location) '
+             'VALUES (:uid, :uname, :loc) ON CONFLICT DO NOTHING;'),
+        {"uid": user.user_id, "uname": user_dets.name, "loc": user.hotspot_location}
+    )
+
+    # Check if already inside hotspot
+    check_stmt = text(f'SELECT * FROM "{hotspot.name}_temporary_table" WHERE user_id = :uid')
+    result_check = db.execute(check_stmt, {"uid": user.user_id}).fetchone()
+    if not result_check:
+        insert_stmt = text(f'INSERT INTO "{hotspot.name}_temporary_table" (user_location, user_id) '
+                           'VALUES (:loc, :uid);')
+        db.execute(insert_stmt, {"loc": user.hotspot_location, "uid": user.user_id})
+    db.commit()
+
+    # 4️⃣ Fetch other users' data
+    users_data = []
+    for oid in other_ids:
+        other_user = oauth2.get_user_by_id(oid, db)
+        other_profile = oauth2.get_user_profile_by_id(oid, db)
+        users_data.append({
+            "user": {
+                "id": other_user.id,
+                "email": other_user.email,
+                "name": other_user.name,
+                "created_at": other_user.created_at
+            },
+            "profile": {
+                "bio": other_profile.bio,
+                "gender": other_profile.gender,
+                "sexual_preference": other_profile.sexual_preference,
+                "height": other_profile.height,
+                "language": other_profile.language,
+                "profile_picture": other_profile.profile_picture,
+                "images": other_profile.images
+            }
+        })
+
+    return {
+        "inside": True,
+        "hotspot_name": hotspot.name,
+        "other_users": users_data
+    }

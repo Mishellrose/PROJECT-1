@@ -53,3 +53,29 @@ class Hotspot(Base):
     #user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),primary_key=True)
     #hotspot_location=Column(String,ForeignKey("hotspot.location",ondelete='CASCADE'), primary_key=True)
 
+class General_hotspot(Base):
+    __tablename__="general_hotspot"
+
+    id=Column(Integer,primary_key=True,autoincrement=True,nullable=False)
+    user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
+    user_name=Column(String,nullable=False)
+    hotspot_location=Column(String,nullable=False)
+
+class SwipeTable(Base):
+    __tablename__="SwipeTable"
+
+    id=Column(Integer,primary_key=True,autoincrement=True,nullable=False)
+    user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
+    user_name=Column(String,nullable=False)
+    swiped_on_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
+    swiped_on_id_name=Column(String,nullable=False)
+    direction=Column(String,nullable=False)  # 'left' or 'right'
+
+class MatchTable(Base):
+    __tablename__="MatchTable"
+
+    id=Column(Integer,primary_key=True,autoincrement=True,nullable=False)
+    user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
+    user_name=Column(String,nullable=False)
+    matched_user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
+    matched_user_name=Column(String,nullable=False)

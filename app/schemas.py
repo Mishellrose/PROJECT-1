@@ -67,19 +67,21 @@ class HSOut(BaseModel):
     description: str
 
 class ImageOut(BaseModel):
-    inside: bool
-    user: UserOut
-    profile: UserProfile
-    profile_picture: Optional[str]
-    images: str
     
-    class config():
+    profile: UserProfile
+    user: UserOut
+    profile_picture: Optional[str]
+    
+
+    class Config():
         orm_mode= True
 
 
 class ProImageOut(BaseModel):
-    profile: ProfileOut
-    image_urls: str
+    profile: UserProfile
+    user: UserOut
+    profile_picture: Optional[str]
+    images: Optional[list]
     class Config():
         orm_mode= True
 
@@ -91,6 +93,7 @@ class UserHS(BaseModel):
 
 class SwipeIn(BaseModel):
     user_id: int
+    user_location: str
     swiped_on_id: int
     direction: str
     class Config():
@@ -99,9 +102,17 @@ class SwipeIn(BaseModel):
 class SwipeOut(BaseModel):
     user_id: int
     user_name: str
-    swiped_on_id: int
-    swiped_on_id_name: str
-    direction: str
+    user_location: str
+    matched_user_id: int
+    matched_user_name: str
+    
+    class Config():
+        orm_mode= True
+
+class MatchOut(BaseModel):
+    matched_user: UserOut
+    matched_profile: UserProfile
+
     class Config():
         orm_mode= True
 

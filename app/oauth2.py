@@ -65,5 +65,7 @@ def get_user_profile_by_id(user_id: int, db: Session = Depends(get_db)):
     profile_id_det = db.execute(text(f"SELECT * FROM profile  WHERE user_id = {user_id};")).fetchone()
     return profile_id_det
 
-
-
+def get_location_by_id(user_id: int, db: Session = Depends(get_db)):
+    location= db.query(models.General_hotspot).filter(models.General_hotspot.user_id==user_id).first()
+    location_id_det = db.execute(text(f"SELECT * FROM general_hotspot  WHERE user_id = {user_id};")).fetchone()
+    return location_id_det

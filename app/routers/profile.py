@@ -120,7 +120,6 @@ async def upload_picture(file:UploadFile, profile_id: int, current_user= Depends
     db.refresh(db_profile)  
 
     return schemas.ImageOut(
-        profile=schemas.ProfileOut(
             profile=schemas.UserProfile(
                 bio=db_profile.bio,
                 gender=db_profile.gender,
@@ -133,11 +132,9 @@ async def upload_picture(file:UploadFile, profile_id: int, current_user= Depends
                 email=current_user.email,
                 name=current_user.name,
                 created_at=current_user.created_at
-            )
-        ),
-        image_url=file_location
-    )
-
+            ),
+            profile_picture=file_location
+        )
 
 #upload multiple images
 @router.post("/upload-multiple/{profile_id}",status_code=status.HTTP_201_CREATED,response_model=schemas.ProImageOut)
@@ -164,7 +161,6 @@ async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, cur
     db.refresh(db_profile)  
 
     return schemas.ImageOut(
-        profile=schemas.ProfileOut(
             profile=schemas.UserProfile(
                 bio=db_profile.bio,
                 gender=db_profile.gender,
@@ -177,7 +173,8 @@ async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, cur
                 email=current_user.email,
                 name=current_user.name,
                 created_at=current_user.created_at
-            )
-        ),
-        image_urls=db_profile.images
-    )
+            ),
+            profile_picture=db_profile.profile_picture,
+            images=db_profile.images
+        )
+       
