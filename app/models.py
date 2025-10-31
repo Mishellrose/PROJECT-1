@@ -1,8 +1,9 @@
-from sqlalchemy import Column,Integer,String,TIMESTAMP,ForeignKey,Boolean
+from sqlalchemy import Column,Integer,String,TIMESTAMP,ForeignKey,Boolean,Date
 from app.database import Base
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.orm import relationship
+from datetime import date
 
 
 class User(Base):
@@ -16,6 +17,8 @@ class User(Base):
     created_at=Column(TIMESTAMP(timezone=True),nullable=False,server_default=text('now()'))
     isPremium=Column(Boolean,default=False)
     isActive=Column(Boolean,default=True)
+    daily_swipe_count = Column(Integer, default=0)
+    last_swipe_reset = Column(Date, nullable=True)
 
 class Profile(Base):
     __tablename__="profile"

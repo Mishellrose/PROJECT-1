@@ -4,6 +4,16 @@ from sqlalchemy import text
 from app import schemas, oauth2
 from app.database import get_db
 from app.services import hotspot_service
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import date
+
+
+from fastapi import FastAPI
+from datetime import datetime
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler  # runs tasks in the background
+from apscheduler.triggers.cron import CronTrigger  # allows us to specify a recurring time for execution
+
 
 router = APIRouter(prefix="/match", tags=["Match"])
 
@@ -30,16 +40,29 @@ def swipe_match(
     result = hotspot_service.get_users_in_same_hotspot(swipe.user_id, swipe.user_location, db)
     if not result or swipe.swiped_on_id not in result["other_user_ids"]:
         raise HTTPException(status_code=400, detail="You can only swipe users inside your hotspot.")
+        
+    today = date.today()
+    if db_user.last_swipe_reset != today:
+        # reset if new day
+        db_user.daily_swipe_count = 0
+        db_user.last_swipe_reset = today
+    if swipe.direction == "right" and not db_user.isPremium:
+        if db_user.daily_swipe_count >= 5:
+            raise HTTPException(
+                status_code=400,
+                detail="You have reached your daily swipe-right limit (5 per day)."
+            )
+        db_user.daily_swipe_count += 1
 
-    # 3️⃣ Record the swipe
-    user_details = oauth2.get_user_by_id(swipe.user_id, db)
+    db.commit()
+
     insert_stmt = text("""
         INSERT INTO "SwipeTable" (user_id, user_name, swiped_on_id, swiped_on_id_name, direction)
         VALUES (:uid, :uname, :sid, :sname, :dir);
     """)
     db.execute(insert_stmt, {
         "uid": swipe.user_id,
-        "uname": user_details.name,
+        "uname": db_user.name,
         "sid": swipe.swiped_on_id,
         "sname": target_user.name,
         "dir": swipe.direction
@@ -47,7 +70,11 @@ def swipe_match(
     db.commit()
 
     # 4️⃣ Check if both swiped right (match)
+    #a user can only swipe right 5 times a day
+
     if swipe.direction == "right":
+        
+
         check_stmt = text("""
             SELECT * FROM "SwipeTable"
             WHERE user_id = :sid AND swiped_on_id = :uid AND direction = 'right';
@@ -60,21 +87,27 @@ def swipe_match(
                 ON CONFLICT DO NOTHING;
             """), {
                 "uid": swipe.user_id,
-                "uname": user_details.name,
+                "uname": db_user.name,
                 "mid": swipe.swiped_on_id,
                 "mname": target_user.name
             })
             db.commit()
-            print(f"New match: {user_details.name} ❤️ {target_user.name}")
+            print(f"New match: {db_user.name} ❤️ {target_user.name}")
+    remaining = (
+        5 - db_user.daily_swipe_count if not db_user.isPremium else "∞"
+    )
+            
     # 5️⃣ Response
     return {
         
         "user_id": swipe.user_id,
-        "user_name": user_details.name,
+        "user_name": db_user.name,
         "user_location": swipe.user_location,
         "matched_user_id": swipe.swiped_on_id,
-        "matched_user_name": target_user.name
+        "matched_user_name": target_user.name,
+        "balance_swipe_rights":remaining
     }
+
 
 @router.get("/MyMatches",status_code=status.HTTP_200_OK)
 def get_all_my_matches(user_id: int,

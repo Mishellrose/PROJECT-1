@@ -58,3 +58,4 @@ def get_users_in_same_hotspot(user_id: int, user_location: str, db: Session):
 
     # not inside any hotspot
     return None
+

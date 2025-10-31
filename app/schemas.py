@@ -105,6 +105,7 @@ class SwipeOut(BaseModel):
     user_location: str
     matched_user_id: int
     matched_user_name: str
+    balance_swipe_rights: int
     
     class Config():
         orm_mode= True
