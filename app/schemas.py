@@ -2,7 +2,7 @@
 # from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+from typing import Optional,Literal
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -117,7 +117,16 @@ class MatchOut(BaseModel):
     class Config():
         orm_mode= True
 
+class SubscribePlanIn(BaseModel):
+    user_id:int
+    plan_type: Literal["1_month", "3_month"]   
+    class Config():
+        orm_mode= True
 
+class PaymentVerifyIn(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
     
 
 

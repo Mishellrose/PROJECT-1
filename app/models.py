@@ -1,9 +1,9 @@
-from sqlalchemy import Column,Integer,String,TIMESTAMP,ForeignKey,Boolean,Date
+from sqlalchemy import Column,Integer,String,TIMESTAMP,ForeignKey,Boolean,DateTime,Date
 from app.database import Base
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.orm import relationship
-from datetime import date
+from datetime import datetime
 
 
 class User(Base):
@@ -19,6 +19,10 @@ class User(Base):
     isActive=Column(Boolean,default=True)
     daily_swipe_count = Column(Integer, default=0)
     last_swipe_reset = Column(Date, nullable=True)
+    subscription_expiry = Column(DateTime, nullable=True)
+    subscriptions = relationship("SubscriptionTable", back_populates="user")
+
+
 
 class Profile(Base):
     __tablename__="profile"
@@ -82,3 +86,16 @@ class MatchTable(Base):
     user_name=Column(String,nullable=False)
     matched_user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
     matched_user_name=Column(String,nullable=False)
+
+
+class SubscriptionTable(Base):
+    __tablename__="Subscriptions"
+
+    id=Column(Integer,primary_key=True,autoincrement=True,nullable=False)
+    user_id= Column(Integer,ForeignKey("users.id",ondelete='CASCADE'),nullable=False)
+    start_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+    end_date = Column(DateTime, nullable=False)
+    payment_id = Column(String, nullable=False, unique=True)
+    plan_type = Column(String, nullable=False)  # e.g., "1_month" or "3_mont
+    
+    user = relationship("User", back_populates="subscriptions")
