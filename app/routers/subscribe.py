@@ -4,6 +4,7 @@ from sqlalchemy import text
 from datetime import datetime, timedelta
 import razorpay
 import json
+from fastapi.responses import PlainTextResponse
 
 from app import oauth2
 from app.database import get_db
@@ -76,9 +77,9 @@ async def payment_callback(request: Request):
     print("💬 Callback received:", params)
 
     if params.get("razorpay_payment_link_status") == "paid":
-        return {"message": "✅ Payment successful! Your subscription will activate shortly."}
+        return PlainTextResponse("✅ Payment successful! Your subscription will activate shortly.")
     else:
-        return {"message": "❌ Payment not completed or failed."}
+        return PlainTextResponse("❌ Payment not completed or failed.")
 
 
 # 3️⃣ WEBHOOK (Server-to-Server confirmation)
@@ -107,34 +108,43 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
     print("📩 Received event:", event)
 
     if event == "payment_link.paid":
-        notes = payload["payload"]["payment_link"]["entity"]["notes"]
+        # Extract payment link entity
+        payment_link_entity = payload["payload"]["payment_link"]["entity"]
+        notes = payment_link_entity["notes"]
+        
+        # Extract payment_id from the payload
+        payment_id = payment_link_entity.get("payment_id") or payment_link_entity.get("id")
+        
         print("🧾 Notes:", notes)
+        print("💳 Payment ID:", payment_id)
 
         user_id = notes.get("user_id")
         plan = notes.get("plan") or "1_month"
 
         if not user_id:
             raise HTTPException(status_code=400, detail="Missing user_id in notes")
+        
+        if not payment_id:
+            raise HTTPException(status_code=400, detail="Missing payment_id in payload")
 
         validity_days = 30 if plan == "1_month" else 90
         expiry_date = datetime.utcnow() + timedelta(days=validity_days)
 
         # ✅ Update user to premium
         db.execute(text("""
-            UPDATE "user" SET "isPremium" = TRUE, "subscription_expiry" = :expiry
+            UPDATE users SET "isPremium" = TRUE, "subscription_expiry" = :expiry
             WHERE id = :uid
         """), {"uid": user_id, "expiry": expiry_date})
         db.commit()
-
-        # ✅ Record in subscription table
         db.execute(text("""
-            INSERT INTO "SubscriptionTable" (user_id, start_date, end_date, plan_type)
-            VALUES (:uid, :start, :end, :plan)
+            INSERT INTO "Subscriptions" (user_id, start_date, end_date, plan_type, payment_id)
+            VALUES (:uid, :start, :end, :plan, :payment_id)
         """), {
             "uid": user_id,
             "start": datetime.utcnow(),
             "end": expiry_date,
-            "plan": plan
+            "plan": plan,
+            "payment_id": payment_id  # Added this
         })
         db.commit()
 
