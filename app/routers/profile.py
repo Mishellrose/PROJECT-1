@@ -81,7 +81,7 @@ def partial_update(
      raise HTTPException(status_code=403, detail="Not allowed to update this profile")
 
     # Convert only provided fields into a dict
-    update_data = profile.dict(exclude_unset=True)
+    update_data = profile.model_dump(exclude_unset=True)
 
     # Apply updates
     for key, value in update_data.items():
@@ -156,6 +156,8 @@ async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, cur
 
     # Store the list of image paths as a comma-separated string
     db_profile.images = ",".join(file_locations)
+    
+    print(db_profile)
     db.add(db_profile)
     db.commit()
     db.refresh(db_profile)  
@@ -175,6 +177,6 @@ async def upload_multiple_pictures(files: List[UploadFile], profile_id: int, cur
                 created_at=current_user.created_at
             ),
             profile_picture=db_profile.profile_picture,
-            images=db_profile.images
+            images=[db_profile.images]
         )
        

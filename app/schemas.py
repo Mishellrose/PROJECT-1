@@ -42,11 +42,11 @@ class ProfileOut(BaseModel):
         orm_mode=True
 
 class PartialProf(BaseModel):
-    bio: Optional[str] 
-    gender: Optional[str] 
-    sexual_preference: Optional[str] 
-    height: Optional[int] 
-    language: Optional[str] 
+    bio: Optional[str] =None
+    gender: Optional[str] =None
+    sexual_preference: Optional[str] =None
+    height: Optional[int] =None
+    language: Optional[str] =None
     class Config():
         orm_mode= True
 
@@ -71,7 +71,7 @@ class ImageOut(BaseModel):
     profile: UserProfile
     user: UserOut
     profile_picture: Optional[str]
-    
+    images: Optional[list]
 
     class Config():
         orm_mode= True

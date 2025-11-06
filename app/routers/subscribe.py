@@ -97,7 +97,7 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
 
     try:
         body_str = body.decode("utf-8")
-        client.utility.verify_webhook_signature(
+        client.utility.verify_webhook_signature(                           #A helper function provided by the official Razorpay Python SDK
             body_str, signature, settings.RAZORPAY_WEBHOOK_SECRET
         )
     except razorpay.errors.SignatureVerificationError:
